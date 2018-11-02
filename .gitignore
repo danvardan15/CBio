@@ -1,0 +1,7 @@
+*.pdf
+*checkpoint.ipynb
+*.pdb
+*.fsc
+*.txt
+*.zip
+*.pyc
