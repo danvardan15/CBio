@@ -45,5 +45,6 @@ class PymolLauncher(AnnoteFinder):
         cmd.hide("all")
         cmd.load(self.native_name + '/' + annote + '.pdb')
         cmd.show("cartoon", self.native_name + ", " + annote)
-        cmd.align(self.native_name, annote)
+        result = cmd.align(self.native_name, annote)
         cmd.zoom(self.native_name)
+        print("Align of {} and {}, rmsd: {}".format(self.native_name, annote, result[0]))
