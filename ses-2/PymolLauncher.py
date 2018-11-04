@@ -11,7 +11,8 @@ Inherents from AnnoteFinder
 """
 class PymolLauncher(AnnoteFinder):
     def set_native(self, native):
-        self.native = native 
+        self.native = native
+        self.native_name = native[-8:-4]
     """
     This is a derived class from AnnoteFinder! 
   
@@ -35,11 +36,14 @@ class PymolLauncher(AnnoteFinder):
            """
            Mark data point and show data
            """
-           t = axis.text(x,y, "(%3.2f, %3.2f)"%(x,y), )
+           t = axis.text(x,y, "(%3.2f, %3.2f) - %s"%(x,y,annote), )
            m = axis.scatter([x],[y], marker='d', c='r', zorder=100)
            self.drawnAnnotations[(x,y)] =(t,m)
            self.axis.figure.canvas.draw()
 
-    """Your code here!"""
-
-     
+        #cmd.load(self.native)
+        cmd.hide("all")
+        cmd.load(self.native_name + '/' + annote + '.pdb')
+        cmd.show("cartoon", self.native_name + ", " + annote)
+        cmd.align(self.native_name, annote)
+        cmd.zoom(self.native_name)
