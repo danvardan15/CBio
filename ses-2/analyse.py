@@ -34,22 +34,37 @@ def stats(x, y, annote):
     # among the 25 lowest energy structures?
     # What is the median GDT_TS
     lowest_25 = sorted([(z[1],z[2]) for z in sorted(zip(y, x, annote))][:25])
-    s_best = lowest_25[-1][1]
-    s_median = lowest_25[12][0]
+    s_best = lowest_25[-1]
+    s_median = lowest_25[12]
     return s_best, s_median
 
 @cmd.extend
-def analyse(protein='1N0U', skip_header=0):
+def analyse(params="1N0U 0"):
+    """
+    launch pymol
+    from console type:   run analyse.py protein_id skip_header
+    note: skip_header is an int that indicates the number of rows to skip
+    """
+    protein, skip_header = params.split(" ")
     score_path = '{}/score.fsc'.format(protein)
-    x, y, annote = read_scores(score_path, skip_header)
+    x, y, annote = read_scores(score_path, int(skip_header))
     ax = plot_scores(x, y)
     s_best, s_median = stats(x, y, annote)
     print("among the 25 lowest energy structures:")
-    print("best structrure: {}".format(s_best))
-    print("Median gdt_ts: {}".format(s_median))
+    print("best structrure: {1} with gdt_ts {0}".format(*s_best))
+    print("Median gdt_ts: {0} from structure {1}".format(*s_median))
     pl1 = PymolLauncher(x, y, annote, ax)
     pl1.set_native("{0}/{0}.pdb".format(protein))
     load_native(pl1)
     plt.connect('button_press_event', pl1)
     plt.show()
 
+
+use = """
+    launch pymol
+    from console type:   run analyse.py
+                         analyse protein_id skip_header
+    note: skip_header is an int that indicates the number of rows to skip
+
+    """
+print(use)
