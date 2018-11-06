@@ -16,6 +16,7 @@ def add_options( parser ):
     #Add options one at a time
     parser.add_option("--score_file", type="string", dest="score_file", help="Name of the score file")
     parser.add_option("--native", type="string", dest="native", help="Name of the native .pdb file")
+    # Since some of the score files contain an extra header, we add this option
     parser.add_option("--skipheader", type="int", dest="skipheader", help="number of rows to skip")
 
     #Parse args and get options
@@ -28,10 +29,16 @@ def add_options( parser ):
     return options, args
 
 def read_scores(score_path, skip_header=0):
+    """
+    Read score file from score_path skipping skip_header rows
+    """
+    # Read as numpy array
     data = np.genfromtxt(score_path, dtype=object, skip_header=skip_header)
+    # Get score, gdtmm, and last column
     mask = np.logical_or(data[0]==b'score', data[0]==b'gdtmm')
     mask[-1] = True
     mat = data[:, mask]
+    # unpack and cast values
     energy, gdt_ts, name = mat[1:,0], mat[1:,1], mat[1:,2] 
     energy = energy.astype('float')
     gdt_ts = gdt_ts.astype('float')
@@ -39,21 +46,29 @@ def read_scores(score_path, skip_header=0):
     return gdt_ts, energy, name
 
 def plot_scores(x, y):
+    """
+    scatter plot of arrays x, y
+    """
     f, ax = plt.subplots()
     ax.scatter(x, y)
-    ax.set_title("GDT_TS vs. Energy of protein") #specify
+    ax.set_title("GDT_TS vs. Energy of protein")
     ax.set_xlabel("GDT_TS [gdt_ts units]") # units?
     ax.set_ylabel("Energy [pJ / mol]") # units?
     ax.set_xlim(0.0, 1.0)
     return ax
 
 def load_native(pl1):
+    """
+    load native structure
+    """
     cmd.load(pl1.native)
 
 def stats(x, y, annote):
-    """ What is the structure with the highest GDT_TS
-    among the 25 lowest energy structures?
-    What is the median GDT_TS"""
+    """ 
+    Specify what is the structure with the highest GDT_TS
+    among the 25 lowest energy structures and
+    what is the median GDT_TS
+    """
     lowest_25 = sorted([(z[1],z[2]) for z in sorted(zip(y, x, annote))][:25])
     s_best = lowest_25[-1]
     s_median = lowest_25[12]
@@ -65,7 +80,9 @@ def main():
     options, args = add_options(parser)
     # open a score file with the argument from OptionParser object
     gdts, scores, pdbs = read_scores(options.score_file, options.skipheader)
+    # plot scores v. energy
     ax = plot_scores(gdts, scores)
+    # get information from lowest energy structures
     s_best, s_median = stats(gdts, scores, pdbs)
     print("among the 25 lowest energy structures:")
     print("best structrure: {1} with gdt_ts {0}".format(*s_best))

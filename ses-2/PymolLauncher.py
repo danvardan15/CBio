@@ -41,9 +41,11 @@ class PymolLauncher(AnnoteFinder):
            self.drawnAnnotations[(x,y)] =(t,m)
            self.axis.figure.canvas.draw()
 
-        #cmd.load(self.native)
+        # hide previous structures and load decoy
+        # since native was loaded already, colour is always different
         cmd.hide("all")
         cmd.load(self.native_name + '/' + annote + '.pdb')
+        # show, align, and zoom
         cmd.show("cartoon", self.native_name + ", " + annote)
         result = cmd.align(self.native_name, annote)
         cmd.zoom(self.native_name)
