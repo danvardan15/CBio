@@ -1,7 +1,4 @@
-#thoughts: move phi or psi, or both?
 #going uphill ends up not in optima, restore to best value?
-
-#some attribs of traj could be in folding
 #plot mean should be improved
 
 import numpy as np
@@ -39,7 +36,6 @@ class Trajectory:
                     maximum angles to move a residue (float), k*T_0 (float)
         Note:   Simulated annealing is only performed if
                 both the use_criterion, and the annealing flags are True
-        For annealing parameters refer to: func:`~Trajectory.anneal`
         kT0 and L were calculated to fit:
         kT(0) = 100 and kT(n) = 0.1; kT(x) = kT0 * exp(-Lx)
         """
@@ -84,13 +80,15 @@ class Trajectory:
 
     def alter_pose(self, res, curr_iter):
         """
-        Phi and psi angles of a pose's residue are modified.
-        Changes persist its scored is accepted according to
+        Phi or psi angles of a pose's residue are modified.
+        Changes persist if its score is accepted, according to
         energy difference and metropolis criterion.
         """
         candidate = self.pose.clone()
-        candidate.set_phi(res, new_angle(candidate.phi(res), self.max_add))
-        candidate.set_psi(res, new_angle(candidate.psi(res), self.max_add))
+        if np.random.randint(0, 2):
+            candidate.set_phi(res, new_angle(candidate.phi(res), self.max_add))
+        else:
+            candidate.set_psi(res, new_angle(candidate.psi(res), self.max_add))
         E2 = self.score_fn(candidate)
         # acceptance criteria
         dE = E2 - self.E
@@ -186,12 +184,26 @@ class Folding:
         print("Median energy: {}".format(np.median(self.final_energies)))
 
 
+f1 = Folding(pose_ex2, 1000, 3, True)
+f1.run_metropolis()
+f1.print_stats()
 
+f2 = Folding(pose_ex2, 1000, 3, False)
+f2.run_metropolis()
+f2.print_stats()
 
+f3 = Folding(pose_ex2, 1000, 3, True, True)
+f3.run_metropolis()
+f3.print_stats()
 
-f = Folding(pose_ex2, 75, 4, True, True)
-f.run_metropolis()
-f.print_stats()
-f.plot_energy_courses()
-f.plot_final_energies()
-f.plot_mean_course()
+f1.plot_energy_courses()
+f1.plot_final_energies()
+f1.plot_mean_course()
+
+f2.plot_energy_courses()
+f2.plot_final_energies()
+f2.plot_mean_course()
+
+f3.plot_energy_courses()
+f3.plot_final_energies()
+f3.plot_mean_course()
