@@ -1,5 +1,5 @@
-#going uphill ends up not in optima, restore to best value?
-#plot mean should be improved
+#TODO
+#remove unnecesary comments (like this one)
 
 import numpy as np
 import pyrosetta
@@ -96,11 +96,11 @@ class Trajectory:
         dE = E2 - self.E
         if dE < 0:
             self.pose, self.E = candidate, E2
-            self.pmover.apply(self.pose)
+            #self.pmover.apply(self.pose)
         if self.annealing: self.anneal(curr_iter)
         if self.use_criterion and np.random.random() < self.metropolis_crit(dE):
             self.pose, self.E = candidate, E2
-            self.pmover.apply(self.pose)
+            #self.pmover.apply(self.pose)
 
         if E2 < self.best_energy:
             self.save_angles(self.pose, res)
@@ -114,9 +114,11 @@ class Trajectory:
         Energy evolution is saved for plotting reasons.
         """
         for i in range(self.niter):
+            if not (i % 100 ): print("iter {}".format(i))
             residue = np.random.randint(1, self.pose.total_residue() + 1)
             self.alter_pose(residue, i)
             self.energy_course[i] = self.E
+        self.pmover.apply(self.pose)
 
     def save_angles(self, pose, res=None):
         """
@@ -157,12 +159,21 @@ class Folding:
 
     def run_metropolis(self):
         """
-        Run MC metropolis for every trajectory, keeping track of final energy
+        Run MC metropolis for every trajectory, keeping track of final energy,
+        and showing the best pose with the configuration that yielded the least energy
         """
         for i, traj in enumerate(self.trajectories):
             print("Trajectory {}:\n".format(i + 1))
             traj.metropolis()
             self.final_energies[i] = traj.best_energy
+
+        argbest = np.argmin(self.final_energies)
+        best = self.trajectories[argbest]
+        for i in range(1, best.pose.total_residue() + 1):
+            phi, psi = best.q[i - 1]
+            best.pose.set_phi(i, phi)
+            best.pose.set_psi(i, psi)
+        best.pmover.apply(best.pose)
 
     def plot_energy_courses(self):
         plt.figure()
@@ -201,15 +212,15 @@ class Folding:
 
 
 if __name__ == "__main__":
-    f1 = Folding(pose_ex2, 2000, 3, True)
+    f1 = Folding(pose_ex2, 1000, 10, True)
     f1.run_metropolis()
     f1.print_stats()
 
-    f2 = Folding(pose_ex2, 2000, 3, False)
+    f2 = Folding(pose_ex2, 1000, 10, False)
     f2.run_metropolis()
     f2.print_stats()
 
-    f3 = Folding(pose_ex2, 2000, 3, True, True)
+    f3 = Folding(pose_ex2, 1000, 10, True, True)
     f3.run_metropolis()
     f3.print_stats()
 
@@ -224,3 +235,27 @@ if __name__ == "__main__":
     f3.plot_energy_courses()
     #f3.plot_final_energies()
     #f3.plot_mean_course()
+"""
+
+Best energy: 24.330692322145516 from trajectory 5
+Worse energy: 39.65597268341044 from trajectory 6
+Median energy: 31.250255270042267
+
+
+Best energy: 27.265454854794132 from trajectory 9
+Worse energy: 42.30774656101213 from trajectory 6
+Median energy: 36.10088392731572
+
+
+Best energy: 17.616799752095016 from trajectory 1
+Worse energy: 30.59311316644381 from trajectory 10
+Median energy: 28.79510428943214
+
+
+f4 = Folding(pose_ex2, 5000, 5, True)
+Best energy: 14.964035908138134 from trajectory 5
+Worse energy: 24.67295881218503 from trajectory 3
+Median energy: 18.08955495960742
+
+
+"""
