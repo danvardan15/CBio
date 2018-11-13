@@ -48,7 +48,7 @@ class Trajectory:
         self.use_criterion = use_criterion
         self.max_add = max_add
         self.energy_course = np.zeros(niter)
-        
+        self.q = np.zeros((self.pose.total_residue(), 2))
         self.annealing = annealing and use_criterion
         self.kT0 = kT0
         self.L = np.log(1000) / niter
@@ -57,7 +57,9 @@ class Trajectory:
     def set_score_fn(self, score_fn):
         """Set a score function and calculate initial energy"""
         self.score_fn = score_fn
+        self.save_angles(self.pose)
         self.E = self.score_fn(self.pose)
+        self.best_energy = self.E
 
     def centroid_score(self, pose):
         """
@@ -100,6 +102,11 @@ class Trajectory:
             self.pose, self.E = candidate, E2
             self.pmover.apply(self.pose)
 
+        if E2 < self.best_energy:
+            self.save_angles(self.pose, res)
+            self.best_energy = E2
+
+
     def metropolis(self):
         """
         Monte Carlo metropolis method.
@@ -110,6 +117,15 @@ class Trajectory:
             residue = np.random.randint(1, self.pose.total_residue() + 1)
             self.alter_pose(residue, i)
             self.energy_course[i] = self.E
+
+    def save_angles(self, pose, res=None):
+        """
+        Store angles of pose, either for one res or for all pose
+        """
+        if res: self.q[res - 1] = (pose.phi(res), pose.psi(res))
+        for res in range(1, pose.total_residue() +1):
+            self.q[res - 1] = (pose.phi(res), pose.psi(res))
+        return pose
 
     def plot_energy_course(self):
         """plot energy evolution"""
@@ -146,7 +162,7 @@ class Folding:
         for i, traj in enumerate(self.trajectories):
             print("Trajectory {}:\n".format(i + 1))
             traj.metropolis()
-            self.final_energies[i] = traj.E
+            self.final_energies[i] = traj.best_energy
 
     def plot_energy_courses(self):
         plt.figure()
@@ -184,26 +200,27 @@ class Folding:
         print("Median energy: {}".format(np.median(self.final_energies)))
 
 
-f1 = Folding(pose_ex2, 1000, 3, True)
-f1.run_metropolis()
-f1.print_stats()
+if __name__ == "__main__":
+    f1 = Folding(pose_ex2, 2000, 3, True)
+    f1.run_metropolis()
+    f1.print_stats()
 
-f2 = Folding(pose_ex2, 1000, 3, False)
-f2.run_metropolis()
-f2.print_stats()
+    f2 = Folding(pose_ex2, 2000, 3, False)
+    f2.run_metropolis()
+    f2.print_stats()
 
-f3 = Folding(pose_ex2, 1000, 3, True, True)
-f3.run_metropolis()
-f3.print_stats()
+    f3 = Folding(pose_ex2, 2000, 3, True, True)
+    f3.run_metropolis()
+    f3.print_stats()
 
-f1.plot_energy_courses()
-f1.plot_final_energies()
-f1.plot_mean_course()
+    f1.plot_energy_courses()
+    #f1.plot_final_energies()
+    #f1.plot_mean_course()
 
-f2.plot_energy_courses()
-f2.plot_final_energies()
-f2.plot_mean_course()
+    f2.plot_energy_courses()
+    #f2.plot_final_energies()
+    #f2.plot_mean_course()
 
-f3.plot_energy_courses()
-f3.plot_final_energies()
-f3.plot_mean_course()
+    f3.plot_energy_courses()
+    #f3.plot_final_energies()
+    #f3.plot_mean_course()
