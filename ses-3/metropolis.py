@@ -1,18 +1,17 @@
-#TODO
-#remove unnecesary comments (like this one)
-
 import numpy as np
 import pyrosetta
 import matplotlib.pyplot as plt
 from pyrosetta import PyMOLMover
 from pyrosetta import SwitchResidueTypeSetMover
 
+# init pyrosetta and load score3 function
 pyrosetta.init()
 SCORE3 = pyrosetta.create_score_function("score3")
 
 # function to initialise a pose
-def pose_ex2(seq='DAYAQWLKDGGPSSGRPPPS'):
+def create_pose(seq='DAYAQWLKDGGPSSGRPPPS'):
     pose = pyrosetta.pose_from_sequence(seq)
+    # set given initial conditions
     for res in range(1, pose.total_residue() +1):
         pose.set_phi(res, -150)
         pose.set_psi(res, 150)
@@ -20,7 +19,7 @@ def pose_ex2(seq='DAYAQWLKDGGPSSGRPPPS'):
     return pose
 
 
-# functions to manipulate angles
+# functions to create an angle in range [a-da, a+da)
 new_angle = lambda a, da: modular_angle(np.random.randint(a-da, a+da))
 
 def modular_angle(n):
@@ -96,11 +95,11 @@ class Trajectory:
         dE = E2 - self.E
         if dE < 0:
             self.pose, self.E = candidate, E2
-            #self.pmover.apply(self.pose)
+            self.pmover.apply(self.pose)
         if self.annealing: self.anneal(curr_iter)
         if self.use_criterion and np.random.random() < self.metropolis_crit(dE):
             self.pose, self.E = candidate, E2
-            #self.pmover.apply(self.pose)
+            self.pmover.apply(self.pose)
 
         if E2 < self.best_energy:
             self.save_angles(self.pose, res)
@@ -147,11 +146,13 @@ class Folding:
         self.ntraj = ntraj
         self.niter = niter
         pose = pose_init()
+        # movers needed to convert to centroid and full atom
         movers = {
         "pmover": PyMOLMover(),
         "centroid": SwitchResidueTypeSetMover("centroid"),
         "fa_mover": SwitchResidueTypeSetMover("fa_standard")
         }
+        # initialise trajectories with clone of initial pose
         for i in range(ntraj):
             tr = Trajectory(i, pose.clone(), movers, niter, use_criterion, annealing, max_add, kT0)
             tr.set_score_fn(tr.centroid_score)
@@ -176,13 +177,16 @@ class Folding:
         best.pmover.apply(best.pose)
 
     def plot_energy_courses(self):
+        """plot evolution of energies of every trajectory"""
         plt.figure()
         for traj in self.trajectories:
             traj.plot_energy_course()
+        plt.title("Energy evolution")
         plt.legend()
         plt.show()
 
     def plot_mean_course(self):
+        """plot evolution of energies averaged over trajectories """
         energy_matrix = np.zeros((self.ntraj, self.niter))
         for i, traj in enumerate(self.trajectories):
             energy_matrix[i] = traj.energy_course
@@ -194,6 +198,7 @@ class Folding:
         plt.show()
 
     def plot_final_energies(self):
+        """plot final energies for every trajectory"""
         plt.figure()
         plt.xlabel("Trajectory")
         plt.ylabel("Final energy")
@@ -202,6 +207,7 @@ class Folding:
         plt.show()
 
     def print_stats(self):
+        """print best worse and median of solutions"""
         argbest = np.argmin(self.final_energies)
         argworse = np.argmax(self.final_energies)
         best = self.final_energies[argbest]
@@ -212,50 +218,36 @@ class Folding:
 
 
 if __name__ == "__main__":
-    f1 = Folding(pose_ex2, 1000, 10, True)
+    # MC with metropolis criterion
+    f1 = Folding(create_pose, 1000, 10, True)
     f1.run_metropolis()
     f1.print_stats()
-
-    f2 = Folding(pose_ex2, 1000, 10, False)
+    # MC without metropolis criterion
+    f2 = Folding(create_pose, 1000, 10, False)
     f2.run_metropolis()
     f2.print_stats()
-
-    f3 = Folding(pose_ex2, 1000, 10, True, True)
+    # Simulated annealing
+    f3 = Folding(create_pose, 1000, 10, True, True)
     f3.run_metropolis()
     f3.print_stats()
+    # MC with metropolis criterion, more iterations
+    f4 = Folding(create_pose, 5000, 5, True)
+    f4.run_metropolis()
+    f4.print_stats()
 
+    #plots
     f1.plot_energy_courses()
-    #f1.plot_final_energies()
-    #f1.plot_mean_course()
+    f1.plot_final_energies()
+    f1.plot_mean_course()
 
     f2.plot_energy_courses()
-    #f2.plot_final_energies()
-    #f2.plot_mean_course()
+    f2.plot_final_energies()
+    f2.plot_mean_course()
 
     f3.plot_energy_courses()
-    #f3.plot_final_energies()
-    #f3.plot_mean_course()
-"""
+    f3.plot_final_energies()
+    f3.plot_mean_course()
 
-Best energy: 24.330692322145516 from trajectory 5
-Worse energy: 39.65597268341044 from trajectory 6
-Median energy: 31.250255270042267
-
-
-Best energy: 27.265454854794132 from trajectory 9
-Worse energy: 42.30774656101213 from trajectory 6
-Median energy: 36.10088392731572
-
-
-Best energy: 17.616799752095016 from trajectory 1
-Worse energy: 30.59311316644381 from trajectory 10
-Median energy: 28.79510428943214
-
-
-f4 = Folding(pose_ex2, 5000, 5, True)
-Best energy: 14.964035908138134 from trajectory 5
-Worse energy: 24.67295881218503 from trajectory 3
-Median energy: 18.08955495960742
-
-
-"""
+    f4.plot_energy_courses()
+    f4.plot_final_energies()
+    f4.plot_mean_course()
